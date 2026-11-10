@@ -281,7 +281,9 @@ h1 { margin: 0; font-size: clamp(23px, 2.1vw, 29px); line-height: 1.25; letter-s
 .setting-row > span { display: flex; align-items: center; gap: 8px; }
 .danger-button { min-height: 34px; padding: 0 10px; border: 1px solid #f2d3d0; border-radius: 7px; color: #c4544c; background: #fff8f7; font-size: 11px; }
 .inline-alert { display: flex; align-items: center; gap: 8px; padding: 11px 12px; margin-bottom: 12px; border-radius: 8px; font-size: 11px; line-height: 1.5; }
-.inline-alert button { display: grid; place-items: center; margin-left: auto; border: 0; background: transparent; color: inherit; }
+.inline-alert button { display: grid; place-items: center; border: 0; background: transparent; color: inherit; }
+.inline-alert .retry-button, .alert-success > button { margin-left: auto; }
+.retry-button { padding: 5px 9px; border: 1px solid currentColor !important; border-radius: 6px; font-size: 10px; white-space: nowrap; }
 .alert-error { color: #ad3f3a; background: #fff0ef; }
 .alert-success { color: #16815b; background: #eaf8f2; }
 .module-loading { padding: 28px; color: var(--muted); }

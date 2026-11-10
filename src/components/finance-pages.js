@@ -131,25 +131,33 @@ export default function FinancePage({ page, startNew = false }) {
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
-    const supabase = createClient();
-    const { data: { user: activeUser }, error: authError } = await supabase.auth.getUser();
-    if (authError || !activeUser) {
-      router.replace('/login');
-      return;
+    try {
+      const supabase = createClient();
+      const { data: { user: activeUser }, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!activeUser) {
+        router.replace('/login');
+        return;
+      }
+      setUser(activeUser);
+      const initError = await initializeUserData(supabase, activeUser);
+      const [categoryResult, transactionResult, profileResult] = await Promise.all([
+        supabase.from('categories').select('id,name,type,color,icon').eq('user_id', activeUser.id).order('name'),
+        fetchAllTransactions(supabase, activeUser.id),
+        supabase.from('profiles').select('full_name,email').eq('id', activeUser.id).maybeSingle(),
+      ]);
+      const anyError = initError || categoryResult.error || transactionResult.error || profileResult.error;
+      if (anyError) throw anyError;
+      setCategories(categoryResult.data || []);
+      setTransactions(transactionResult.data || []);
+      setProfile({ full_name: profileResult.data?.full_name || activeUser.user_metadata?.full_name || '', email: profileResult.data?.email || activeUser.email || '' });
+    } catch (loadError) {
+      setError(loadError?.message || 'Data gagal dimuat. Periksa koneksi dan pengaturan Supabase, lalu coba lagi.');
+      setCategories([]);
+      setTransactions([]);
+    } finally {
+      setLoading(false);
     }
-    setUser(activeUser);
-    const initError = await initializeUserData(supabase, activeUser);
-    const [categoryResult, transactionResult, profileResult] = await Promise.all([
-      supabase.from('categories').select('id,name,type,color,icon').eq('user_id', activeUser.id).order('name'),
-      fetchAllTransactions(supabase, activeUser.id),
-      supabase.from('profiles').select('full_name,email').eq('id', activeUser.id).maybeSingle(),
-    ]);
-    const anyError = initError || categoryResult.error || transactionResult.error || profileResult.error;
-    if (anyError) setError(anyError.message);
-    setCategories(categoryResult.data || []);
-    setTransactions(transactionResult.data || []);
-    setProfile({ full_name: profileResult.data?.full_name || activeUser.user_metadata?.full_name || '', email: profileResult.data?.email || activeUser.email || '' });
-    setLoading(false);
   }, [router]);
 
   useEffect(() => {
@@ -255,14 +263,14 @@ export default function FinancePage({ page, startNew = false }) {
           <section className="welcome-row"><div><div className="eyebrow"><span className="live-dot" />RUANG KEUANGAN PRIBADI</div><h1>{heading}</h1><p className="page-subtitle">{page === 'settings' ? 'Kelola informasi akun dan preferensi aplikasi.' : `Kelola ${heading.toLowerCase()} keuanganmu dengan mudah.`}</p></div>
             {page === 'transactions' && <button className="primary-button" onClick={() => openTransaction()}><Plus size={17} />Tambah transaksi</button>}
           </section>
-          {error && <div className="inline-alert alert-error" role="alert">{error}<button onClick={() => setError('')} aria-label="Tutup pesan"><X size={16} /></button></div>}
+          {error && <div className="inline-alert alert-error" role="alert"><span>{error}</span><button className="retry-button" onClick={load}>Coba lagi</button><button onClick={() => setError('')} aria-label="Tutup pesan"><X size={16} /></button></div>}
           {success && <div className="inline-alert alert-success" role="status"><Check size={16} />{success}<button onClick={() => setSuccess('')} aria-label="Tutup pesan"><X size={16} /></button></div>}
           {loading ? <section className="panel module-loading">Memuat data akunmu…</section> : <>
             {page === 'transactions' ? <>
               <section className="stats-grid transaction-summary" aria-label="Ringkasan saldo">
-                <article className="stat-card"><div className="stat-top"><span>Total pemasukan</span><span className="stat-icon tone-green"><ArrowDownLeft size={17} /></span></div><div className="stat-value">{loading ? '…' : formatCurrency(totalIncome)}</div><div className="stat-foot">Akumulasi semua transaksi</div></article>
-                <article className="stat-card"><div className="stat-top"><span>Total pengeluaran</span><span className="stat-icon tone-orange"><ArrowUpRight size={17} /></span></div><div className="stat-value">{loading ? '…' : formatCurrency(totalExpense)}</div><div className="stat-foot">Langsung mengurangi saldo</div></article>
-                <article className="stat-card"><div className="stat-top"><span>Sisa saldo</span><span className="stat-icon tone-violet"><Wallet size={17} /></span></div><div className="stat-value">{loading ? '…' : formatCurrency(remainingBalance)}</div><div className="stat-foot">Pemasukan dikurangi pengeluaran</div></article>
+                <article className="stat-card"><div className="stat-top"><span>Total pemasukan</span><span className="stat-icon tone-green"><ArrowDownLeft size={17} /></span></div><div className="stat-value">{loading ? '…' : error ? '—' : formatCurrency(totalIncome)}</div><div className="stat-foot">Akumulasi semua transaksi</div></article>
+                <article className="stat-card"><div className="stat-top"><span>Total pengeluaran</span><span className="stat-icon tone-orange"><ArrowUpRight size={17} /></span></div><div className="stat-value">{loading ? '…' : error ? '—' : formatCurrency(totalExpense)}</div><div className="stat-foot">Langsung mengurangi saldo</div></article>
+                <article className="stat-card"><div className="stat-top"><span>Sisa saldo</span><span className="stat-icon tone-violet"><Wallet size={17} /></span></div><div className="stat-value">{loading ? '…' : error ? '—' : formatCurrency(remainingBalance)}</div><div className="stat-foot">Pemasukan dikurangi pengeluaran</div></article>
               </section>
               <section className="panel filters-panel"><label className="filter-search"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari judul atau kategori" /></label><select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}><option value="all">Semua jenis</option><option value="income">Pemasukan</option><option value="expense">Pengeluaran</option></select><select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">Semua kategori</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select><label className="date-filter"><CalendarDays size={15} /><input type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} aria-label="Filter tanggal" /></label><button className="subtle-button" onClick={() => { setSearch(''); setTypeFilter('all'); setCategoryFilter('all'); setDateFilter(''); }}>Reset</button></section>
               <section className="panel module-table"><div className="transaction-table-head"><span>TRANSAKSI</span><span>KATEGORI</span><span>TANGGAL</span><span>JUMLAH</span><span /></div>{filteredTransactions.length ? filteredTransactions.map((transaction) => <div className="transaction-row module-transaction-row" key={transaction.id}><span className={`transaction-type-icon ${transaction.type === 'income' ? 'income-mark' : 'expense-mark'}`}>{transaction.type === 'income' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}</span><span className="transaction-description"><strong>{transaction.description || transaction.categories?.name || 'Tanpa judul'}</strong><small>{transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}</small></span><span className="category-pill">{transaction.categories?.name || 'Tanpa kategori'}</span><span className="transaction-date">{new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${transaction.transaction_date}T00:00:00Z`))}</span><strong className={`transaction-amount ${transaction.type === 'income' ? 'amount-income' : ''}`}>{transaction.type === 'income' ? '+' : '−'}{formatCurrency(transaction.amount)}</strong><span className="row-actions"><button onClick={() => openTransaction(transaction)}>Edit</button><button onClick={() => deleteTransaction(transaction)} aria-label="Hapus transaksi"><Trash2 size={15} /></button></span></div>) : <div className="module-empty"><Wallet size={23} /><strong>{transactions.length ? 'Tidak ada hasil yang cocok' : 'Belum ada transaksi'}</strong><span>{transactions.length ? 'Ubah filter atau kata pencarian.' : 'Mulai dengan menambahkan transaksi pertamamu.'}</span></div>}</section>
