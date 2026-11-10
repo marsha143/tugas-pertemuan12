@@ -1,4 +1,5 @@
 import { Plus_Jakarta_Sans } from 'next/font/google';
+import ThemeProvider from '@/components/theme-provider';
 import './globals.css';
 
 // 1. Inisialisasi font
@@ -10,13 +11,13 @@ const jakartaSans = Plus_Jakarta_Sans({
 // 2. Metadata global website
 export const metadata = {
     title: {
-        default: 'BookStore - Toko Buku Online',
-        template: '%s | BookStore',
+        default: 'Finora — Keuangan Lebih Jelas',
+        template: '%s | Finora',
     },
-    description: 'Temukan berbagai buku menarik dan favoritmu hanya di BookStore.',
+    description: 'Kelola pemasukan, pengeluaran, dan kategori keuangan pribadi dengan Finora.',
     openGraph: {
-        title: 'BookStore - Toko Buku Online',
-        description: 'Temukan berbagai buku menarik dan favoritmu hanya di BookStore.',
+        title: 'Finora — Keuangan Lebih Jelas',
+        description: 'Kelola keuangan pribadimu dalam satu ruang yang jelas.',
         type: 'website',
     },
 };
@@ -25,11 +26,8 @@ export const metadata = {
 export default function RootLayout({ children }) {
     return (
         <html lang="id">
-            <body
-                className={jakartaSans.className}
-                style={{ margin: 0 }}
-            >
-                {children}
+            <body className={jakartaSans.className} style={{ margin: 0 }}>
+                <ThemeProvider>{children}</ThemeProvider>
             </body>
         </html>
     );

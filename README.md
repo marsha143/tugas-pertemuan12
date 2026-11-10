@@ -1,36 +1,28 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Finora
 
-## Getting Started
+Aplikasi pencatatan keuangan pribadi berbasis Next.js 16 dan Supabase. Pengguna dapat mencatat pemasukan dan pengeluaran, mengelola kategori, dan melihat ringkasan keuangan.
 
-First, run the development server:
+## Menjalankan aplikasi
+
+Pastikan `.env.local` berisi URL Supabase dan publishable key yang sudah digunakan proyek ini. Jangan pernah menaruh service role key di browser.
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka `http://localhost:3000`. Pengguna baru dapat membuat akun melalui halaman Daftar. Jika konfirmasi email Supabase aktif, buka tautan konfirmasi yang dikirim melalui email.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Database
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Aplikasi menggunakan tabel `profiles`, `categories`, dan `transactions` beserta kolom dan Row Level Security yang sudah tersedia pada proyek Supabase. Tabel lain yang sudah ada, termasuk `budgets`, tidak diubah. Aplikasi tidak menjalankan migrasi database. Pada login pertama, profil dan kategori bawaan diinisialisasi secara idempoten menggunakan batas unik `categories(user_id, name, type)`.
 
-## Learn More
+RLS tetap menjadi batas keamanan utama. Query aplikasi juga menyertakan `user_id` pada pengambilan dan perubahan data. Jangan menonaktifkan policy yang membatasi data ke `auth.uid()`.
 
-To learn more about Next.js, take a look at the following resources:
+## Modul
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Transaksi dengan ringkasan total pemasukan, total pengeluaran, sisa saldo, tambah, edit, hapus, pencarian, dan filter.
+- Riwayat dengan diagram donat pengeluaran per kategori, persentase, dan rincian transaksi.
+- Kategori pemasukan dan pengeluaran.
+- Daftar seluruh transaksi dan pengaturan profil serta tema.
+- Tema terang dan gelap, navigasi desktop dan mobile.
